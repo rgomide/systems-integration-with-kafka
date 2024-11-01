@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+# Install nodemon globally for hot-reload
+RUN npm install -g nodemon
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Note: We don't COPY the source code here because we'll use 
+# volume mounting in docker-compose for hot-reload
+
+EXPOSE 3001
+
+CMD ["nodemon", "app.js"]

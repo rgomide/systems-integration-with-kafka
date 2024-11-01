@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS imoveis (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT NOT NULL,
+    preco DECIMAL(10, 2) NOT NULL
+);
