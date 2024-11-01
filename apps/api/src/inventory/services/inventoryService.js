@@ -1,4 +1,4 @@
-const { sendMessage } = require('../services/kafka/producer')
+const { sendMessage } = require('../../services/kafka/producer')
 
 const insert = async (inventory) => {
   const kafkaMessage = {

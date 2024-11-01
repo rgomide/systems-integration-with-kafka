@@ -1,5 +1,5 @@
 const kafka = require('../kafka/config')
-const { create } = require('../controllers/inventory')
+const { create } = require('../controllers/inventoryController')
 
 const consumer = kafka.consumer({ groupId: 'inventory-consumer' })
 

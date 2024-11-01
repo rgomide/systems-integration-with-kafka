@@ -1,3 +1,3 @@
-const consumerModule = require('./src/consumer/inventory')
+const consumerModule = require('./src/consumer/inventoryConsumer')
 
 consumerModule()
