@@ -1,23 +1,9 @@
-FROM openjdk:17-jdk-slim
+FROM maven:3.9.5-eclipse-temurin-17
 
 WORKDIR /app
 
-# Install Maven
-RUN apt-get update && \
-    apt-get install -y maven && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Copy the application first
+COPY . .
 
-# Copy pom.xml for dependency installation
-COPY pom.xml .
-
-# Install dependencies
-RUN mvn dependency:go-offline -B
-
-# Note: We don't COPY the source code here because we'll use 
-# volume mounting in docker-compose for hot-reload
-
-EXPOSE 8080
-
-# Run with spring-boot-devtools for hot-reload
-CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"]
+# Start the application with dev profile
+CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.profiles=dev", "-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"]

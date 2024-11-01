@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class MonitorApplication {
 
 	public static void main(String[] args) {
+		System.out.println("Starting Monitor Application");
 		SpringApplication.run(MonitorApplication.class, args);
 	}
 
