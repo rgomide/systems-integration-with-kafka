@@ -10,6 +10,8 @@
       "database.server.name": "postgres",
       "topic.prefix": "postgres",
       "table.include.list": "public.*",
-      "plugin.name": "pgoutput"
+      "plugin.name": "pgoutput",
+      "decimal.handling.mode": "double",
+      "money.fraction.digits": "2"
   }
 }
