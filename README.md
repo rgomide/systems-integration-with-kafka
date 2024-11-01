@@ -1,5 +1,11 @@
 # Systems Integration With Apache Kafka
 
+## Project Architecture
+
+<p align="center">
+  <img src="./assets/img/systemArchitecture.png" width="800" />
+</p>
+
 ## Running with docker compose
 
 ```bash
@@ -15,6 +21,7 @@ curl -XPOST -H "Content-type: application/json" -d '{
   "price": 12.43
 }' 'http://localhost:3000/inventory'
 ```
+
 
 ## User Interfaces
 - [Debezium UI - Manage connectors](http://localhost:8084)
