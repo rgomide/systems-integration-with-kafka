@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -29,6 +27,16 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_LOG_SEGMENT_BYTES: 10000000
 
+  redpanda-console:
+    image: redpandadata/console:latest
+    container_name: redpanda-console
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - kafka
+
   postgres:
     image: debezium/postgres:15
     container_name: postgres
@@ -40,6 +48,7 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/scripts:/docker-entrypoint-initdb.d
 
   debezium-connect:
     image: debezium/connect:2.4
@@ -74,7 +83,7 @@ services:
       - kafka
     volumes:
       - ./apps/api:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./apps/api/node_modules:/usr/src/app/node_modules
 
   inventory:
     build:

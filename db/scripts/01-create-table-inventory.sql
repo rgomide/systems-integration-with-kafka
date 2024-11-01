@@ -1,6 +1,6 @@
-CREATE TABLE IF NOT EXISTS imoveis (
+CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    descricao TEXT NOT NULL,
-    preco DECIMAL(10, 2) NOT NULL
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    price MONEY NOT NULL
 );
