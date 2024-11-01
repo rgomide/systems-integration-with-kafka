@@ -123,7 +123,7 @@ services:
       - kafka
     volumes:
       - ./apps/api:/usr/src/app
-      - ./apps/api/node_modules:/usr/src/app/node_modules
+      - /usr/src/app/node_modules/
 
   inventory:
     build:
@@ -145,7 +145,7 @@ services:
       - postgres
     volumes:
       - ./apps/inventory:/usr/src/app
-      - ./apps/inventory/node_modules:/usr/src/app/node_modules
+      - /usr/src/app/node_modules/
 
   monitor:
     build:
