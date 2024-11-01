@@ -46,9 +46,17 @@ services:
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    command: 
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=1"
+      - "-c"
+      - "max_replication_slots=1"    
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/scripts:/docker-entrypoint-initdb.d
+      - ./docker/postgres/scripts:/docker-entrypoint-initdb.d
 
   debezium-connect:
     image: debezium/connect:2.4
@@ -68,6 +76,27 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_REST_ADVERTISED_HOST_NAME: debezium-connect
+      CONNECT_REST_PORT: 8083
+      CONNECT_CONFIG_PROVIDERS: file
+      CONNECT_CONFIG_PROVIDERS_FILE_CLASS: org.apache.kafka.common.config.provider.FileConfigProvider
+    volumes:
+      - ./docker/debezium:/opt/kafka/connect/connectors
+    command: >
+      bash -c '
+        /docker-entrypoint.sh start &
+        echo "Waiting for Kafka Connect to start..."
+        while [ $$(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors) -ne 200 ] ; do 
+          echo -n "."
+          sleep 5
+        done
+        echo "Creating connector..."
+        curl -X POST http://localhost:8083/connectors \
+          -H "Content-Type: application/json" \
+          -d @/opt/kafka/connect/connectors/postgres-connector.json
+        echo "Connector created."
+        wait
+      '   
 
   api:
     build:
@@ -99,12 +128,13 @@ services:
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
     depends_on:
       - kafka
       - postgres
     volumes:
       - ./apps/inventory:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./apps/inventory/node_modules:/usr/src/app/node_modules
 
   monitor:
     build:
@@ -113,7 +143,7 @@ services:
     container_name: monitor
     ports:
       - "8080:8080"
-      - "5005:5005"  # Debug port for Java
+      - "5005:5005" # Debug port for Java
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydb
