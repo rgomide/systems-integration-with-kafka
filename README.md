@@ -1,4 +1,4 @@
-# Inventory Service
+# Systems Integration With Apache Kafka
 
 ## Running with docker compose
 
@@ -17,5 +17,8 @@ curl -XPOST -H "Content-type: application/json" -d '{
 ```
 
 ## User Interfaces
-- [Debezium UI](http://localhost:8084)
-- [Redpanda](http://localhost:8081)
+- [Debezium UI - Manage connectors](http://localhost:8084)
+- [Redpanda - Monitor kafka topics](http://localhost:8081)
+
+## References
+- [Debezium](https://debezium.io/documentation/reference/stable/connectors/postgresql.html)
