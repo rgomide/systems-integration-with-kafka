@@ -1,11 +1,10 @@
-const kafka = require('../kafka/config')
-const { create } = require('../controllers/inventoryController')
+const kafka = require('../../services/kafka/config')
 
-const consumer = kafka.consumer({ groupId: 'inventory-consumer' })
+const consumer = kafka.consumer({ groupId: 'inventory-report-consumer' })
 
 const consumerModule = async () => {
   await consumer.connect()
-  await consumer.subscribe({ topic: 'inventory', fromBeginning: true })
+  await consumer.subscribe({ topic: 'postgres.public.inventories', fromBeginning: true })
 
   await consumer.run({
     eachMessage: async (event) => {
@@ -14,15 +13,17 @@ const consumerModule = async () => {
       const { message: { value } } = event
 
       const decodedMessageValue = value.toString()
+      const parsedMessage = JSON.parse(decodedMessageValue)
 
-      let parsedMessage = decodedMessageValue
+      console.log(parsedMessage)
 
-      try {
-        parsedMessage = JSON.parse(decodedMessageValue)
-        dispatchMessage(parsedMessage)
-      } catch (error) {
-        console.log(error)
-      }
+      // let parsedMessage = decodedMessageValue
+
+      // try {
+      //   dispatchMessage(parsedMessage)
+      // } catch (error) {
+      //   console.log(error)
+      // }
     }
   })
 }
@@ -41,17 +42,9 @@ const logMessage = (event) => {
   console.log('\n')
 }
 
-const dispatchMessage = ({ verb, params }) => {
-  switch (verb) {
-    case 'ADD_INVENTORY':
-      create(params)
-  }
-}
-
 process.on('SIGINT', async () => {
-  console.log('Disconnecting the Kafka consumer and producer');
+  console.log('Disconnecting the Kafka consumer');
   await consumer.disconnect();
-  await producer.disconnect();
   process.exit();
 });
 
