@@ -1,3 +1,4 @@
+const { getIo } = require('../../services/socket/setup')
 const kafka = require('../../services/kafka/config')
 
 const consumer = kafka.consumer({ groupId: 'inventory-report-consumer' })
@@ -12,18 +13,18 @@ const consumerModule = async () => {
 
       const { message: { value } } = event
 
+      if (!value) {
+        return
+      }
+
       const decodedMessageValue = value.toString()
       const parsedMessage = JSON.parse(decodedMessageValue)
 
-      console.log(parsedMessage)
+      const io = getIo()
 
-      // let parsedMessage = decodedMessageValue
-
-      // try {
-      //   dispatchMessage(parsedMessage)
-      // } catch (error) {
-      //   console.log(error)
-      // }
+      if (io) {
+        io.emit('inventory-monitor', parsedMessage)
+      }
     }
   })
 }
@@ -38,7 +39,11 @@ const logMessage = (event) => {
   console.log(`Partition: ${partition}`)
   console.log(`Timestamp: ${time}`)
   console.log(`Offset: ${offset}`)
-  console.log('message', value.toString())
+
+  if (value) {
+    console.log('message', value.toString())
+  }
+
   console.log('\n')
 }
 

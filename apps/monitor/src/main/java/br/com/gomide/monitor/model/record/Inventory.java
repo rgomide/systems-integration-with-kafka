@@ -6,7 +6,7 @@ public record Inventory(
     Long id,
     String name,
     String description,
-    String price,
+    Double price,
     @JsonProperty("created_at") String createdAt,
     @JsonProperty("updated_at") String updatedAt) {
 }
