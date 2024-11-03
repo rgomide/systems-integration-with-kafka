@@ -1,17 +1,18 @@
 {
   "name": "postgres-connector",
   "config": {
-      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-      "database.hostname": "postgres",
-      "database.port": "5432",
-      "database.user": "postgres",
-      "database.password": "postgres",
-      "database.dbname": "mydb",
-      "database.server.name": "postgres",
-      "topic.prefix": "postgres",
-      "table.include.list": "public.*",
-      "plugin.name": "pgoutput",
-      "decimal.handling.mode": "double",
-      "money.fraction.digits": "2"
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "mydb",
+    "database.server.name": "postgres",
+    "topic.prefix": "postgres",
+    "table.include.list": "public.*",
+    "plugin.name": "pgoutput",
+    "decimal.handling.mode": "double",
+    "money.fraction.digits": "2",
+    "tombstones.on.delete": "false"
   }
 }

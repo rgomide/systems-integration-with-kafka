@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="/css/styles.css">
+  <title>Inventory Monitor</title>
+</head>
+
+<body>
+  <div id="main-container">
+    <h1>Inventory Monitor</h1>
+
+    <div id="inventory-monitor-container">
+      <ul id="inventory-monitor-list">
+
+      </ul>
+    </div>
+  </div>
+
+  <script src="/js/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+
+    const operations = {
+      c: { title: 'Create', color: 'green' },
+      u: { title: 'Update', color: 'blue' },
+      d: { title: 'Delete', color: 'red' }
+    }
+
+    socket.on('inventory-monitor', (message) => {
+      const { after = {}, before = {}, op, ts_ms: timestamp } = message
+
+      const inventoryMonitorList = document.getElementById('inventory-monitor-list')
+
+      const afterString = JSON.stringify(after, null, 2)
+      const beforeString = JSON.stringify(before, null, 2)
+
+      const operation = operations[op]
+
+      const currentDateTime = new Date(timestamp).toLocaleString()
+
+      const newItem = `
+      <li class="inventory-monitor-item">
+        <h1 class="inventory-monitor-item-operation">Operation: <span class="${operation.color}">${operation.title}</span></h1>
+        <h2 class="inventory-monitor-item-timestamp">${currentDateTime}</h2>
+        <div class="inventory-monitor-item-before">
+          <h2>Before</h2>
+          <p class="inventory-monitor-item-content light-blue">${beforeString}</p>
+        </div>
+        <div class="inventory-monitor-item-after">
+          <h2>After</h2>
+          <p class="inventory-monitor-item-content light-green">${afterString}</p>
+        </div>
+      </li>
+      `
+
+      inventoryMonitorList.innerHTML = newItem + inventoryMonitorList.innerHTML
+    })
+
+    socket.on('connected', (message) => {
+      console.log('user connected', message)
+    })
+  </script>
+</body>
+
+</html>

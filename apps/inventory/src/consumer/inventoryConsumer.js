@@ -48,4 +48,11 @@ const dispatchMessage = ({ verb, params }) => {
   }
 }
 
+process.on('SIGINT', async () => {
+  console.log('Disconnecting the Kafka consumer and producer');
+  await consumer.disconnect();
+  await producer.disconnect();
+  process.exit();
+});
+
 module.exports = consumerModule

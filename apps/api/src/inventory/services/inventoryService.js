@@ -6,6 +6,8 @@ const insert = async (inventory) => {
     params: inventory
   }
 
+  console.log('Sending message to Kafka\n', kafkaMessage)
+
   await sendMessage(kafkaMessage)
 
   return inventory
