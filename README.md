@@ -30,7 +30,7 @@ docker compose up --build
 
 ### Making a HTTP Request to API
 
-Once all the applications are running, you can make a HTTP request to the `api` application to create a new product:
+Once all the applications are running properly, you can make a HTTP POST request to the `api` application to create a new product:
 
 ```bash
 curl -XPOST -H "Content-type: application/json" -d '{
