@@ -51,7 +51,7 @@ Access [http://localhost:3000](http://localhost:3000) in your browser to see the
 
 ## References
 
-### Messaging
+### Event Streaming
 - [Apache Kafka](https://kafka.apache.org/)
 - [Debezium](https://debezium.io/documentation/reference/stable/connectors/postgresql.html)
 - [Redpanda](https://redpanda.com/)
