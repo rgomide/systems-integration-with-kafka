@@ -3,7 +3,7 @@
 ## Project Architecture
 
 <p align="center">
-  <img src="./assets/img/systemArchitecture.png" width="800" />
+  <img src="./assets/img/systemArchitecture.png" />
 </p>
 
 ## Running with docker compose
