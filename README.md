@@ -5,7 +5,6 @@
 <p align="center">
   <img src="./assets/img/systemArchitecture.png" />
 </p>
-
 ## Running with docker compose
 
 ```bash
