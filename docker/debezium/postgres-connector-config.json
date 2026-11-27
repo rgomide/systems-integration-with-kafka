@@ -1,0 +1,16 @@
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "database.hostname": "postgres",
+  "database.port": "5432",
+  "database.user": "postgres",
+  "database.password": "postgres",
+  "database.dbname": "mydb",
+  "topic.prefix": "postgres",
+  "table.include.list": "public.*",
+  "plugin.name": "pgoutput",
+  "decimal.handling.mode": "double",
+  "money.fraction.digits": "2",
+  "tombstones.on.delete": "false",
+  "max.batch.size": 1,
+  "max.queue.size": 10
+}

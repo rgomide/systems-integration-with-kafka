@@ -7,4 +7,13 @@ const kafka = new Kafka({
   brokers: [KAFKA_BROKERS]
 })
 
+// Small fetch sizes for didactic demos (process messages in tiny batches)
+const didacticConsumerConfig = {
+  maxBytesPerPartition: 1024,
+  maxBytes: 2048,
+  minBytes: 1,
+  maxWaitTimeInMs: 500
+}
+
 module.exports = kafka
+module.exports.didacticConsumerConfig = didacticConsumerConfig

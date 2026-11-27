@@ -1,30 +1,46 @@
 const kafka = require('../kafka/config')
 const { create } = require('../controllers/inventoryController')
 
-const consumer = kafka.consumer({ groupId: 'inventory-consumer' })
+const consumer = kafka.consumer({
+  groupId: 'inventory-consumer',
+  ...kafka.didacticConsumerConfig
+})
 
-const consumerModule = async () => {
-  await consumer.connect()
-  await consumer.subscribe({ topic: 'inventory', fromBeginning: true })
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-  await consumer.run({
-    eachMessage: async (event) => {
-      logMessage(event)
+const consumerModule = async (attempt = 1) => {
+  try {
+    await consumer.connect()
+    await consumer.subscribe({ topic: 'inventory', fromBeginning: true })
 
-      const { message: { value } } = event
+    await consumer.run({
+      eachMessage: async (event) => {
+        logMessage(event)
 
-      const decodedMessageValue = value.toString()
+        const { message: { value } } = event
 
-      let parsedMessage = decodedMessageValue
+        const decodedMessageValue = value.toString()
 
-      try {
-        parsedMessage = JSON.parse(decodedMessageValue)
-        dispatchMessage(parsedMessage)
-      } catch (error) {
-        console.log(error)
+        let parsedMessage = decodedMessageValue
+
+        try {
+          parsedMessage = JSON.parse(decodedMessageValue)
+          dispatchMessage(parsedMessage)
+        } catch (error) {
+          console.log(error)
+        }
       }
+    })
+  } catch (error) {
+    console.error(`Kafka consumer failed (attempt ${attempt}):`, error.message)
+    try {
+      await consumer.disconnect()
+    } catch (_) {
+      // ignore disconnect errors during retry
     }
-  })
+    await sleep(Math.min(attempt * 2000, 10000))
+    return consumerModule(attempt + 1)
+  }
 }
 
 const logMessage = (event) => {
@@ -49,9 +65,8 @@ const dispatchMessage = ({ verb, params }) => {
 }
 
 process.on('SIGINT', async () => {
-  console.log('Disconnecting the Kafka consumer and producer');
+  console.log('Disconnecting the Kafka consumer');
   await consumer.disconnect();
-  await producer.disconnect();
   process.exit();
 });
 

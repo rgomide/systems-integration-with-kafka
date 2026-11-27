@@ -1,44 +1,61 @@
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
   kafka:
-    image: confluentinc/cp-kafka:7.4.0
+    image: confluentinc/cp-kafka:7.7.1
     container_name: kafka
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
       - "29092:29092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:29092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_LOG_SEGMENT_BYTES: 5000000
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        echo "Creating didactic topics..."
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic inventory --partitions 1 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic postgres.public.inventories --partitions 1 --replication-factor 1
+        echo "Topics ready."
+    restart: "no"
 
   redpanda-console:
-    image: redpandadata/console:latest
+    image: redpandadata/console:v2.8.20
     container_name: redpanda-console
     ports:
       - "8081:8080"
     environment:
       KAFKA_BROKERS: kafka:9092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   postgres:
-    image: debezium/postgres:15
+    image: quay.io/debezium/postgres:15
     container_name: postgres
     ports:
       - "5432:5432"
@@ -46,24 +63,31 @@ services:
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    command: 
+    command:
       - "postgres"
       - "-c"
       - "wal_level=logical"
       - "-c"
       - "max_wal_senders=1"
       - "-c"
-      - "max_replication_slots=1"    
+      - "max_replication_slots=1"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   debezium-connect:
-    image: debezium/connect:2.4
+    image: quay.io/debezium/connect:2.7.4.Final
     container_name: debezium-connect
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     ports:
       - "8083:8083"
     environment:
@@ -72,6 +96,9 @@ services:
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
       STATUS_STORAGE_TOPIC: connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
@@ -80,26 +107,30 @@ services:
       CONNECT_REST_PORT: 8083
       CONNECT_CONFIG_PROVIDERS: file
       CONNECT_CONFIG_PROVIDERS_FILE_CLASS: org.apache.kafka.common.config.provider.FileConfigProvider
+      CONSUMER_MAX_POLL_RECORDS: 1
+      CONNECT_CONSUMER_MAX_POLL_RECORDS: 1
     volumes:
       - ./docker/debezium:/opt/kafka/connect/connectors
     command: >
       bash -c '
         /docker-entrypoint.sh start &
         echo "Waiting for Kafka Connect to start..."
-        while [ $$(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors) -ne 200 ] ; do 
+        while [ $$(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors) -ne 200 ] ; do
           echo -n "."
           sleep 5
         done
-        echo "Creating connector..."
-        curl -X POST http://localhost:8083/connectors \
+        echo ""
+        echo "Registering connector (create or update)..."
+        curl -X PUT http://localhost:8083/connectors/postgres-connector/config \
           -H "Content-Type: application/json" \
-          -d @/opt/kafka/connect/connectors/postgres-connector.json
-        echo "Connector created."
+          -d @/opt/kafka/connect/connectors/postgres-connector-config.json
+        echo ""
+        echo "Connector registered."
         wait
-      '   
+      '
 
   debezium-ui:
-    image: debezium/debezium-ui:2.4
+    image: debezium/debezium-ui:2.5
     platform: linux/amd64
     container_name: debezium-ui
     ports:
@@ -119,8 +150,12 @@ services:
     environment:
       NODE_ENV: development
       KAFKA_BROKERS: kafka:9092
+      KAFKAJS_NO_PARTITIONER_WARNING: "1"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     volumes:
       - ./apps/api:/usr/src/app
       - /usr/src/app/node_modules/
@@ -135,14 +170,19 @@ services:
     environment:
       NODE_ENV: development
       KAFKA_BROKERS: kafka:9092
+      KAFKAJS_NO_PARTITIONER_WARNING: "1"
       POSTGRES_HOST: postgres
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_PORT: 5432
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     volumes:
       - ./apps/inventory:/usr/src/app
       - /usr/src/app/node_modules/
@@ -154,13 +194,16 @@ services:
     container_name: monitor
     ports:
       - "8080:8080"
-      - "5005:5005" # Debug port for Java
+      - "5005:5005"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_DEVTOOLS_RESTART_ENABLED: "true"
       SPRING_DEVTOOLS_LIVERELOAD_ENABLED: "true"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     volumes:
       - ./apps/monitor:/app
 

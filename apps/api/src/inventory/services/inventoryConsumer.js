@@ -1,32 +1,48 @@
 const { getIo } = require('../../services/socket/setup')
 const kafka = require('../../services/kafka/config')
 
-const consumer = kafka.consumer({ groupId: 'inventory-report-consumer' })
+const consumer = kafka.consumer({
+  groupId: 'inventory-report-consumer',
+  ...kafka.didacticConsumerConfig
+})
 
-const consumerModule = async () => {
-  await consumer.connect()
-  await consumer.subscribe({ topic: 'postgres.public.inventories', fromBeginning: true })
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-  await consumer.run({
-    eachMessage: async (event) => {
-      logMessage(event)
+const consumerModule = async (attempt = 1) => {
+  try {
+    await consumer.connect()
+    await consumer.subscribe({ topic: 'postgres.public.inventories', fromBeginning: true })
 
-      const { message: { value } } = event
+    await consumer.run({
+      eachMessage: async (event) => {
+        logMessage(event)
 
-      if (!value) {
-        return
+        const { message: { value } } = event
+
+        if (!value) {
+          return
+        }
+
+        const decodedMessageValue = value.toString()
+        const parsedMessage = JSON.parse(decodedMessageValue)
+
+        const io = getIo()
+
+        if (io) {
+          io.emit('inventory-monitor', parsedMessage)
+        }
       }
-
-      const decodedMessageValue = value.toString()
-      const parsedMessage = JSON.parse(decodedMessageValue)
-
-      const io = getIo()
-
-      if (io) {
-        io.emit('inventory-monitor', parsedMessage)
-      }
+    })
+  } catch (error) {
+    console.error(`Kafka consumer failed (attempt ${attempt}):`, error.message)
+    try {
+      await consumer.disconnect()
+    } catch (_) {
+      // ignore disconnect errors during retry
     }
-  })
+    await sleep(Math.min(attempt * 2000, 10000))
+    return consumerModule(attempt + 1)
+  }
 }
 
 const logMessage = (event) => {
