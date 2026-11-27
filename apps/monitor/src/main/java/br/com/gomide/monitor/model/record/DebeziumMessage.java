@@ -6,6 +6,8 @@ public record DebeziumMessage(
     Source source,
     String op,
     Long ts_ms,
+    Long ts_us,
+    Long ts_ns,
     Object transaction) {
 
 }

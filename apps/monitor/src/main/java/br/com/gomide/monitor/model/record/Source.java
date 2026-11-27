@@ -5,6 +5,8 @@ public record Source(
     String connector,
     String name,
     Long ts_ms,
+    Long ts_us,
+    Long ts_ns,
     String snapshot,
     String db,
     String sequence,

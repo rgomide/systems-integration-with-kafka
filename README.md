@@ -22,6 +22,8 @@ Finally, the `monitor` application is a simple Java application that consumes me
 
 ## Running the project
 
+The stack runs Apache Kafka in **KRaft mode** (no ZooKeeper). Consumer poll/batch sizes are kept small for didactic demos.
+
 ### Running with docker compose
 
 ```bash
